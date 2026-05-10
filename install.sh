@@ -128,7 +128,7 @@ ip -6 addr show scope global up | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' | cat -n
 echo ""
 
 # 配置 IPv6 索引
-DEFAULT_INDEX=9
+DEFAULT_INDEX=1
 read -r -p "请选择使用第几个 IPv6 地址（默认: $DEFAULT_INDEX）: " IPV6_INDEX
 IPV6_INDEX="${IPV6_INDEX:-$DEFAULT_INDEX}"
 info "将使用第 $IPV6_INDEX 个全局 IPv6 地址"
