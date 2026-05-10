@@ -103,6 +103,11 @@ if [[ "$ENABLE_INPUT" =~ ^[Yy]$ ]]; then
     else
         ENABLE_EMAIL="true"
         info "邮件通知已启用，通知将发送至: $MAIL_TO"
+        # 配置发件邮箱
+        DEFAULT_FROM="root@$(hostname -f 2>/dev/null || hostname)"
+        read -r -p "请输入发件邮箱地址（默认: ${DEFAULT_FROM}）: " MAIL_FROM
+        MAIL_FROM="${MAIL_FROM:-${DEFAULT_FROM}}"
+        info "发件邮箱设置为: $MAIL_FROM"
     fi
 else
     ENABLE_EMAIL="false"
@@ -115,6 +120,7 @@ sed -i "s/^IPV6_INDEX=.*/IPV6_INDEX=${IPV6_INDEX}/" "$SCRIPT_DEST"
 sed -i "s/^ENABLE_EMAIL=.*/ENABLE_EMAIL=${ENABLE_EMAIL}/" "$SCRIPT_DEST"
 if [[ "$ENABLE_EMAIL" == "true" ]] && [[ -n "${MAIL_TO:-}" ]]; then
     sed -i "s|^MAIL_TO=.*|MAIL_TO=\"${MAIL_TO}\"|" "$SCRIPT_DEST"
+    sed -i "s|^MAIL_FROM=.*|MAIL_FROM=\"${MAIL_FROM}\"|" "$SCRIPT_DEST"
 fi
 ok "配置已应用"
 
@@ -153,5 +159,5 @@ echo "手动运行:   sudo ${SCRIPT_DEST}"
 echo "查看日志:   sudo ${SCRIPT_DEST} 直接运行即可查看输出"
 echo ""
 if [[ "$ENABLE_EMAIL" == "true" ]]; then
-    echo "邮件通知:   已启用（发送至 $MAIL_TO）"
+    echo "邮件通知:   已启用（发送至 $MAIL_TO，发件人: $MAIL_FROM）"
 fi
