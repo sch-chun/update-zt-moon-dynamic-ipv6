@@ -5,6 +5,8 @@
 # 用法:
 #   curl -sSL https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/install.sh | sudo bash
 #
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 set -euo pipefail
 
 # ---------- 颜色输出 ----------
