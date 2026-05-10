@@ -15,8 +15,9 @@ ZeroTier Moon 节点的 IPv6 地址自动更新脚本
 - 使用 `jq` 修改 moon.json 中的 `stableEndpoints`
 - 自动重新生成 `.moon` 文件并部署到 `moons.d`
 - 重启 ZeroTier 服务使配置生效
-- 可选邮件通知（通过 sendmail）
+- 可选邮件通知（通过 sendmail），**自动检测并安装 sendmail**
 - 可配置 IPv6 地址索引（适用于多 IPv6 地址环境）
+- **支持 `--uninstall` 一键卸载**
 
 ## 环境要求
 
@@ -35,9 +36,21 @@ curl -sSL https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6
 安装脚本会自动完成以下操作：
 1. 安装依赖（jq）
 2. 将主脚本部署到 `/usr/local/bin/`
-3. 交互式配置 IPv6 地址索引和邮件通知开关
-4. 设置定时任务（每小时执行一次）
-5. 立即执行一次更新
+3. 交互式配置 IPv6 地址索引和邮件通知（收发邮箱地址）
+4. **自动检测 sendmail，缺失时自动安装**
+5. 设置定时任务（每小时执行一次）
+6. 立即执行一次更新
+
+### 一键卸载
+
+```bash
+curl -sSL -o /tmp/install.sh https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/install.sh && sudo bash /tmp/install.sh --uninstall
+```
+
+卸载会清理以下内容：
+- 移除 crontab 定时任务
+- 删除主脚本 `/usr/local/bin/update-zt-moon-ipv6.sh`
+- 清理 IPv6 地址缓存文件
 
 ### 手动安装
 
@@ -52,6 +65,7 @@ sudo vim /usr/local/bin/update-zt-moon-ipv6.sh
 #   IPV6_INDEX - 使用第几个全局 IPv6 地址（默认为 9）
 #   ENABLE_EMAIL - 是否启用邮件通知
 #   MAIL_TO - 接收通知的邮箱地址
+#   MAIL_FROM - 发件邮箱地址
 
 # 3. 设置定时任务，每小时检查一次
 sudo crontab -e
@@ -76,6 +90,7 @@ sudo /usr/local/bin/update-zt-moon-ipv6.sh
 | `IPV6_INDEX` | `9` | 使用第几个全局 IPv6 地址（从 1 开始） |
 | `ENABLE_EMAIL` | `true` | 是否发送邮件通知 |
 | `MAIL_TO` | — | 邮件接收地址 |
+| `MAIL_FROM` | `root@hostname` | 发件邮箱地址 |
 
 > 提示：如果你的服务器有多个 IPv6 地址，可以通过调整 `IPV6_INDEX` 选择特定的地址。先用 `ip -6 addr show scope global` 查看可用的地址列表，再确定索引值。
 
@@ -108,7 +123,24 @@ flowchart TD
 - 更新时间
 - 客户端重新 orbit 的命令提示
 
-前提是系统中已安装并配置好 sendmail（如 postfix 或 msmtp 等 MTA）。
+一键安装时会自动检测系统中是否存在 `sendmail` 命令，如果缺失则尝试自动安装（sendmail 或 postfix）。你也可以在安装前提前装好：
+
+```bash
+# Debian / Ubuntu
+sudo apt install -y sendmail
+
+# CentOS / RHEL
+sudo yum install -y sendmail
+```
+
+### 邮件配置变量
+
+| 变量 | 配置时机 | 说明 |
+|------|----------|------|
+| `MAIL_TO` | 安装交互 / 手动编辑 | 接收通知的目标邮箱 |
+| `MAIL_FROM` | 安装交互 / 手动编辑 | 发件邮箱地址，默认为 `root@当前主机名` |
+
+确保 `MAIL_FROM` 的值被 sendmail 所在的 MTA 允许发送，否则邮件可能被拒绝。
 
 ## 许可证
 
