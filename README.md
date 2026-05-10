@@ -87,7 +87,7 @@ sudo /usr/local/bin/update-zt-moon-ipv6.sh
 | `MOONS_DIR` | `$ZT_HOME/moons.d` | Moon 文件部署目录 |
 | `IPV6_CACHE` | `/var/cache/moon-ipv6.txt` | IPv6 地址缓存文件 |
 | `ZT_PORT` | `9993` | ZeroTier 通信端口 |
-| `IPV6_INDEX` | `9` | 使用第几个全局 IPv6 地址（从 1 开始） |
+| `IPV6_INDEX` | `1` | 使用第几个全局 IPv6 地址（从 1 开始） |
 | `ENABLE_EMAIL` | `true` | 是否发送邮件通知 |
 | `MAIL_TO` | — | 邮件接收地址 |
 | `MAIL_FROM` | `root@hostname` | 发件邮箱地址 |
