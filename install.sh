@@ -1,13 +1,19 @@
 #!/bin/bash
 #
-# install.sh — update-zt-moon-dynamic-ipv6 一键安装脚本
+# install.sh — update-zt-moon-dynamic-ipv6 一键安装/卸载脚本
 #
 # 用法:
-#   curl -sSL https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/install.sh | sudo bash
+#   安装: curl -sSL https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/install.sh | sudo bash
+#   卸载: curl -sSL -o /tmp/install.sh https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/install.sh && sudo bash /tmp/install.sh --uninstall
 #
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 set -euo pipefail
+
+# ---------- 常量 ----------
+SCRIPT_URL="https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/update-zt-moon-ipv6.sh"
+SCRIPT_DEST="/usr/local/bin/update-zt-moon-ipv6.sh"
+IPV6_CACHE="/var/cache/zt-moon-ipv6.txt"
 
 # ---------- 颜色输出 ----------
 RED='\033[0;31m'
@@ -20,6 +26,43 @@ info()  { echo -e "${CYAN}[INFO]${NC} $*"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 err()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+
+# ---------- 卸载模式 ----------
+if [[ "${1:-}" == "--uninstall" ]]; then
+    echo ""
+    info "=============================="
+    info " 卸载 update-zt-moon-dynamic-ipv6"
+    info "=============================="
+    echo ""
+
+    # 从 crontab 移除定时任务
+    if crontab -l 2>/dev/null | grep -Fq "$SCRIPT_DEST"; then
+        crontab -l 2>/dev/null | grep -Fv "$SCRIPT_DEST" | crontab -
+        ok "已移除定时任务"
+    else
+        info "未找到定时任务，跳过"
+    fi
+
+    # 删除主脚本
+    if [[ -f "$SCRIPT_DEST" ]]; then
+        rm -f "$SCRIPT_DEST"
+        ok "已删除 $SCRIPT_DEST"
+    else
+        info "主脚本不存在，跳过"
+    fi
+
+    # 删除缓存
+    if [[ -f "$IPV6_CACHE" ]]; then
+        rm -f "$IPV6_CACHE"
+        ok "已删除 IPv6 缓存文件"
+    else
+        info "缓存文件不存在，跳过"
+    fi
+
+    echo ""
+    ok "卸载完成！"
+    exit 0
+fi
 
 # ---------- 检查 root ----------
 if [[ $EUID -ne 0 ]]; then
@@ -60,9 +103,6 @@ if ! command -v zerotier-idtool &> /dev/null; then
 fi
 
 # ---------- 下载主脚本 ----------
-SCRIPT_URL="https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6/main/update-zt-moon-ipv6.sh"
-SCRIPT_DEST="/usr/local/bin/update-zt-moon-ipv6.sh"
-
 echo ""
 info "下载主脚本..."
 
@@ -110,6 +150,30 @@ if [[ "$ENABLE_INPUT" =~ ^[Yy]$ ]]; then
         read -r -p "请输入发件邮箱地址（默认: ${DEFAULT_FROM}）: " MAIL_FROM
         MAIL_FROM="${MAIL_FROM:-${DEFAULT_FROM}}"
         info "发件邮箱设置为: $MAIL_FROM"
+
+        # 检查并安装 sendmail
+        if ! command -v sendmail &> /dev/null; then
+            warn "未检测到 sendmail 命令，正在尝试自动安装..."
+            set +e
+            if command -v apt &> /dev/null; then
+                apt install -y -qq sendmail 2>/dev/null || apt install -y -qq postfix 2>/dev/null
+            elif command -v yum &> /dev/null; then
+                yum install -y sendmail 2>/dev/null || yum install -y postfix 2>/dev/null
+            elif command -v dnf &> /dev/null; then
+                dnf install -y sendmail 2>/dev/null || dnf install -y postfix 2>/dev/null
+            else
+                warn "找不到包管理器，请手动安装 sendmail 或 postfix"
+            fi
+            set -e
+            if command -v sendmail &> /dev/null; then
+                ok "sendmail 已安装"
+            else
+                warn "sendmail 安装失败，邮件通知功能将不可用"
+                warn "请手动安装 sendmail 或 postfix 后重试"
+            fi
+        else
+            ok "sendmail 已安装"
+        fi
     fi
 else
     ENABLE_EMAIL="false"
@@ -133,7 +197,7 @@ CRON_JOB="0 * * * * ${SCRIPT_DEST}"
 
 # 检查是否已存在相同的定时任务
 if crontab -l 2>/dev/null | grep -Fq "$SCRIPT_DEST"; then
-    warn "定时任务已跳过"
+    warn "定时任务已存在，跳过"
 else
     (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
     ok "定时任务已添加：每小时执行一次 $SCRIPT_DEST"
@@ -158,8 +222,12 @@ echo "主脚本路径: $SCRIPT_DEST"
 echo "定时任务:   每小时自动执行一次"
 echo ""
 echo "手动运行:   sudo ${SCRIPT_DEST}"
+echo "卸载:       sudo bash ${0} --uninstall"
 echo "查看日志:   sudo ${SCRIPT_DEST} 直接运行即可查看输出"
 echo ""
 if [[ "$ENABLE_EMAIL" == "true" ]]; then
     echo "邮件通知:   已启用（发送至 $MAIL_TO，发件人: $MAIL_FROM）"
 fi
+echo ""
+info "提示：卸载时请使用以下命令"
+echo "  curl -sSL -o /tmp/install.sh $SCRIPT_URL && sudo bash /tmp/install.sh --uninstall"
