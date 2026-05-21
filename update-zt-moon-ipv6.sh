@@ -7,6 +7,8 @@
 
 set -euo pipefail
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 # ---------- 配置 ----------
 
 ZT_HOME="/var/lib/zerotier-one"
@@ -146,6 +148,7 @@ Moon ID: $MOON_ID
 更新时间: $(date)
 
 所有客户端需要重新执行 orbit 以获取最新端点：
+  zerotier-cli deorbit $MOON_ID
   zerotier-cli orbit $MOON_ID $MOON_ID
 
 —— Moon 自动更新脚本
