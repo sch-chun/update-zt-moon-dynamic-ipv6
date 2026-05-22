@@ -121,19 +121,57 @@ fi
 echo ""
 info "开始配置脚本参数..."
 
-# 显示当前 IPv6 地址列表
+# --- 1. 指定网卡 ---
 echo ""
-echo "当前系统的全局 IPv6 地址列表："
-ip -6 addr show scope global up | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' | cat -n
+echo "当前系统可用网卡列表："
+ip -6 -brief addr show scope global up | awk '{print NR")", $1}' || true
 echo ""
+read -r -p "是否限定仅从某个网卡获取 IPv6 地址？(直接回车跳过，输入网卡名如 enp2s0)： " INTERFACE
+INTERFACE="${INTERFACE:-}"
+if [[ -n "$INTERFACE" ]]; then
+    info "将限定使用网卡: $INTERFACE"
+else
+    info "不限定网卡，将检查所有启用的全局 IPv6 地址"
+fi
 
-# 配置 IPv6 索引
+# --- 2. 指定地址标记 ---
+echo ""
+echo "常见的 IPv6 地址标记：dynamic、temporary、mngtmpaddr 等（可多个，以空格分隔）"
+echo "标记会出现在 ip addr show 的地址行末尾，例如 inet6 ... scope global dynamic mngtmpaddr"
+echo ""
+read -r -p "是否限定仅获取含有特定标记的地址？(直接回车跳过，输入标记名如 mngtmpaddr)： " ADDR_FLAG
+ADDR_FLAG="${ADDR_FLAG:-}"
+if [[ -n "$ADDR_FLAG" ]]; then
+    info "将限定地址标记: $ADDR_FLAG"
+else
+    info "不限定标记，将列出所有全局 IPv6 地址"
+fi
+
+# --- 3. 显示筛选后的地址列表，让用户选择序号 ---
+echo ""
+info "根据当前筛选条件，显示可用地址列表："
+
+# 构建 ip 命令
+DEV_OPT=""
+if [[ -n "$INTERFACE" ]]; then
+    DEV_OPT="dev $INTERFACE"
+fi
+if [[ -n "$ADDR_FLAG" ]]; then
+    # 显示匹配标记的行
+    ip -6 addr show scope global up $DEV_OPT | grep -w "$ADDR_FLAG" | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' | cat -n
+else
+    ip -6 addr show scope global up $DEV_OPT | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' | cat -n
+fi
+
+echo ""
 DEFAULT_INDEX=1
-read -r -p "请选择使用第几个 IPv6 地址（默认: $DEFAULT_INDEX）: " IPV6_INDEX
+read -r -p "请选择使用第几个地址（默认: $DEFAULT_INDEX）： " IPV6_INDEX
 IPV6_INDEX="${IPV6_INDEX:-$DEFAULT_INDEX}"
-info "将使用第 $IPV6_INDEX 个全局 IPv6 地址"
+info "将使用第 $IPV6_INDEX 个符合筛选条件的 IPv6 地址"
 
-# 配置邮件通知
+# ---------- 配置邮件通知 ----------
+echo ""
+info "配置邮件通知..."
 DEFAULT_ENABLE="Y"
 read -r -p "是否启用邮件通知？(Y/n，默认: $DEFAULT_ENABLE): " ENABLE_INPUT
 ENABLE_INPUT="${ENABLE_INPUT:-$DEFAULT_ENABLE}"
@@ -182,7 +220,11 @@ fi
 
 # ---------- 写入配置 ----------
 info "应用配置到脚本..."
+
+# 使用 sed 修改主脚本中的对应变量
 sed -i "s/^IPV6_INDEX=.*/IPV6_INDEX=${IPV6_INDEX}/" "$SCRIPT_DEST"
+sed -i "s/^INTERFACE=.*/INTERFACE=\"${INTERFACE}\"/" "$SCRIPT_DEST"
+sed -i "s/^ADDR_FLAG=.*/ADDR_FLAG=\"${ADDR_FLAG}\"/" "$SCRIPT_DEST"
 sed -i "s/^ENABLE_EMAIL=.*/ENABLE_EMAIL=${ENABLE_EMAIL}/" "$SCRIPT_DEST"
 if [[ "$ENABLE_EMAIL" == "true" ]] && [[ -n "${MAIL_TO:-}" ]]; then
     sed -i "s|^MAIL_TO=.*|MAIL_TO=\"${MAIL_TO}\"|" "$SCRIPT_DEST"
@@ -225,6 +267,13 @@ echo "手动运行:   sudo ${SCRIPT_DEST}"
 echo "卸载:       sudo bash ${0} --uninstall"
 echo "查看日志:   sudo ${SCRIPT_DEST} 直接运行即可查看输出"
 echo ""
+if [[ -n "$INTERFACE" ]]; then
+    echo "限定网卡:   $INTERFACE"
+fi
+if [[ -n "$ADDR_FLAG" ]]; then
+    echo "限定标记:   $ADDR_FLAG"
+fi
+echo "地址序号:   第 $IPV6_INDEX 个"
 if [[ "$ENABLE_EMAIL" == "true" ]]; then
     echo "邮件通知:   已启用（发送至 $MAIL_TO，发件人: $MAIL_FROM）"
 fi
