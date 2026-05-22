@@ -19,10 +19,10 @@ ZT_PORT="9993"
 SERVICE_NAME="zerotier-one"
 
 # 指定网卡名，留空表示不限制
-INTERFACE="enp2s0"
+INTERFACE=""
 
 # 要匹配的 IPv6 地址标记，如 mngtmpaddr、dynamic、temporary 等，留空表示不限制
-ADDR_FLAG="mngtmpaddr"
+ADDR_FLAG=""
 
 # 在匹配结果中取第几个地址（从1开始，默认为1）
 IPV6_INDEX=1
