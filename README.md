@@ -11,6 +11,7 @@ ZeroTier Moon 节点的 IPv6 地址自动更新脚本
 ## 功能特性
 
 - 自动检测系统中指定的全局 IPv6 地址
+- 支持按网卡接口过滤（`INTERFACE`）和按地址标记过滤（`ADDR_FLAG`）
 - 与缓存地址比对，仅在变更时执行更新
 - 使用 `jq` 修改 moon.json 中的 `stableEndpoints`
 - 自动重新生成 `.moon` 文件并部署到 `moons.d`
@@ -62,7 +63,9 @@ sudo install -m 755 update-zt-moon-ipv6.sh /usr/local/bin/
 sudo vim /usr/local/bin/update-zt-moon-ipv6.sh
 # 主要修改以下变量：
 #   ZT_HOME - ZeroTier 工作目录（默认为 /var/lib/zerotier-one）
-#   IPV6_INDEX - 使用第几个全局 IPv6 地址（默认为 9）
+#   INTERFACE - 指定网卡名，留空表示不限制
+#   ADDR_FLAG - IPv6 地址标记过滤，如 mngtmpaddr，留空表示不限制
+#   IPV6_INDEX - 使用第几个全局 IPv6 地址（默认为 1）
 #   ENABLE_EMAIL - 是否启用邮件通知
 #   MAIL_TO - 接收通知的邮箱地址
 #   MAIL_FROM - 发件邮箱地址
@@ -85,14 +88,16 @@ sudo /usr/local/bin/update-zt-moon-ipv6.sh
 | `ZT_HOME` | `/var/lib/zerotier-one` | ZeroTier 工作目录 |
 | `MOON_JSON` | `$ZT_HOME/moon.json` | Moon 配置文件路径 |
 | `MOONS_DIR` | `$ZT_HOME/moons.d` | Moon 文件部署目录 |
-| `IPV6_CACHE` | `/var/cache/moon-ipv6.txt` | IPv6 地址缓存文件 |
+| `IPV6_CACHE` | `/var/cache/zt-moon-ipv6.txt` | IPv6 地址缓存文件 |
 | `ZT_PORT` | `9993` | ZeroTier 通信端口 |
+| `INTERFACE` | `enp2s0` | 指定网卡名，留空表示不限制 |
+| `ADDR_FLAG` | `mngtmpaddr` | 匹配的 IPv6 地址标记（如 mngtmpaddr、dynamic、temporary），留空表示不限制 |
 | `IPV6_INDEX` | `1` | 使用第几个全局 IPv6 地址（从 1 开始） |
 | `ENABLE_EMAIL` | `true` | 是否发送邮件通知 |
 | `MAIL_TO` | — | 邮件接收地址 |
-| `MAIL_FROM` | `root@hostname` | 发件邮箱地址 |
+| `MAIL_FROM` | — | 发件邮箱地址 |
 
-> 提示：如果你的服务器有多个 IPv6 地址，可以通过调整 `IPV6_INDEX` 选择特定的地址。先用 `ip -6 addr show scope global` 查看可用的地址列表，再确定索引值。
+> 提示：如果你的服务器有多个 IPv6 地址，可以通过调整 `IPV6_INDEX` 选择特定的地址。先用 `ip -6 addr show scope global` 查看可用的地址列表，再确定索引值。如果需要限定在特定网卡上，可以设置 `INTERFACE`；如果只想匹配带特定标记的地址（如 `mngtmpaddr`），可以设置 `ADDR_FLAG`。
 
 ## 工作流程
 
