@@ -18,8 +18,14 @@ IPV6_CACHE="/var/cache/zt-moon-ipv6.txt"
 ZT_PORT="9993"
 SERVICE_NAME="zerotier-one"
 
-# 使用第几个全局 IPv6 地址（从 1 开始计数）
-IPV6_INDEX=9
+# 指定网卡名，留空表示不限制
+INTERFACE="enp2s0"
+
+# 要匹配的 IPv6 地址标记，如 mngtmpaddr、dynamic、temporary 等，留空表示不限制
+ADDR_FLAG="mngtmpaddr"
+
+# 在匹配结果中取第几个地址（从1开始，默认为1）
+IPV6_INDEX=1
 
 # --- 邮件通知配置 ---
 ENABLE_EMAIL=true                   # 改为 false 可禁用邮件通知
@@ -27,13 +33,25 @@ MAIL_FROM=""
 MAIL_TO=""        # 接收通知的邮箱
 MAIL_SUBJECT="ZeroTier Moon IPv6 已更新"
 
-# ---------- 函数：获取第 N 个全局 IPv6 ----------
+# ---------- 函数：获取 IPv6 ----------
 
 get_global_ipv6() {
     local index="${1:-1}"
-    ip -6 addr show scope global up \
-        | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' \
-        | awk -v n="$index" 'NR==n {print; exit}'
+    local dev_flag=""
+    local grep_flag=""
+    [[ -n "$INTERFACE" ]] && dev_flag="dev $INTERFACE"
+    
+    # 构建 ip 命令，只显示全局且已启用的地址
+    local ip_cmd="ip -6 addr show scope global up $dev_flag"
+    
+    # 如果不限制标记，则直接提取地址；否则先 grep 行，再提取
+    if [[ -n "$ADDR_FLAG" ]]; then
+        $ip_cmd | grep -w "$ADDR_FLAG" | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' \
+            | awk -v n="$index" 'NR==n {print; exit}'
+    else
+        $ip_cmd | grep -Po 'inet6\s+\K[0-9a-f:]+(?=/)' \
+            | awk -v n="$index" 'NR==n {print; exit}'
+    fi
 }
 
 # ---------- 检查 root ----------
