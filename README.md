@@ -37,7 +37,7 @@ curl -sSL https://raw.githubusercontent.com/sch-chun/update-zt-moon-dynamic-ipv6
 安装脚本会自动完成以下操作：
 1. 安装依赖（jq）
 2. 将主脚本部署到 `/usr/local/bin/`
-3. 交互式配置 IPv6 地址索引和邮件通知（收发邮箱地址）
+3. 交互式配置网卡接口、地址标记、IPv6 地址索引和邮件通知
 4. **自动检测 sendmail，缺失时自动安装**
 5. 设置定时任务（每小时执行一次）
 6. 立即执行一次更新
@@ -103,20 +103,23 @@ sudo /usr/local/bin/update-zt-moon-ipv6.sh
 
 ```mermaid
 flowchart TD
-    A[脚本启动] --> B[获取第 N 个全局 IPv6]
-    B --> C{获取成功?}
-    C -->|否| D[报错退出]
-    C -->|是| E[与缓存对比]
-    E -->|相同| F[无需更新，退出]
-    E -->|不同| G[更新 moon.json 中的 stableEndpoints]
-    G --> H[通过 zerotier-idtool 重新生成 .moon]
-    H --> I[部署到 moons.d 目录]
-    I --> J[重启 ZeroTier 服务]
-    J --> K[写入 IPv6 缓存]
-    K --> L{启用邮件通知?}
-    L -->|是| M[发送更新通知邮件]
-    L -->|否| N[完成]
-    M --> N
+    A[脚本启动] --> B[根据 INTERFACE 筛选网卡]
+    B --> C[根据 ADDR_FLAG 过滤地址标记]
+    C --> D[获取符合条件的所有全局 IPv6]
+    D --> E[取第 IPV6_INDEX 个地址]
+    E --> F{获取成功?}
+    F -->|否| G[报错退出]
+    F -->|是| H[与缓存对比]
+    H -->|相同| I[无需更新，退出]
+    H -->|不同| J[更新 moon.json 中的 stableEndpoints]
+    J --> K[通过 zerotier-idtool 重新生成 .moon]
+    K --> L[部署到 moons.d 目录]
+    L --> M[重启 ZeroTier 服务]
+    M --> N[写入 IPv6 缓存]
+    N --> O{启用邮件通知?}
+    O -->|是| P[发送更新通知邮件]
+    O -->|否| Q[完成]
+    P --> Q
 ```
 
 ## 邮件通知
