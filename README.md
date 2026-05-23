@@ -1,4 +1,4 @@
-> **English** · [中文](./README.md)**
+> [English](./README.en.md) · **中文**
 
 # update-zt-moon-dynamic-ipv6
 
