@@ -1,3 +1,5 @@
+> **English** · [中文](./README.md)**
+
 # update-zt-moon-dynamic-ipv6
 
 ZeroTier Moon 节点的 IPv6 地址自动更新脚本

@@ -1,3 +1,5 @@
+> [English](./README.en.md) · **中文**
+
 # update-zt-moon-dynamic-ipv6
 
 Auto-update script for ZeroTier Moon node IPv6 addresses
